@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# OBS / clips output (if stored locally)
+clips/
+*.mp4
+*.mkv
+*.flv
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.user
