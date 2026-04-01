@@ -1,6 +1,6 @@
 # WorkWatch 🎬
 
-**Auto-capture WIP clips while you work.** WorkWatch is a lightweight Python script that monitors your active window and tells OBS Studio to save short replay clips whenever you're working in Unity, Blender, or Substance Painter. No manual recording — clips just pile up in a folder, ready for TikTok WIP posts.
+**Auto-capture WIP clips while you work.** WorkWatch is a lightweight Python script that monitors your active window and tells OBS Studio to save short replay clips whenever you're working in Unity, Blender, or Substance Painter. No manual recording — clips just pile up in a folder, ready for sharing on social media.
 
 Built by an indie game dev who kept forgetting to hit record.
 
