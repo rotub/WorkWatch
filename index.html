@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkWatch — Auto-Capture Your Dev Sessions</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-elevated: #12121a;
+    --bg-card: #181824;
+    --border: #2a2a3d;
+    --text: #e4e4ef;
+    --text-dim: #7a7a95;
+    --accent: #22d67a;
+    --accent-glow: rgba(34, 214, 122, 0.15);
+    --accent-dim: #1a9e5c;
+    --orange: #ff8844;
+    --blue: #4488ff;
+    --purple: #aa66ff;
+    --red: #ff4466;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(34, 214, 122, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 214, 122, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* NAV */
+  nav {
+    padding: 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .nav-logo .dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--accent); }
+    50% { opacity: 0.6; box-shadow: 0 0 4px var(--accent); }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 28px;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  /* HERO */
+  .hero {
+    padding: 100px 0 80px;
+    text-align: center;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--accent-glow);
+    border: 1px solid rgba(34, 214, 122, 0.25);
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease-out both;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s ease-out 0.1s both;
+  }
+
+  .hero h1 .highlight {
+    color: var(--accent);
+    position: relative;
+  }
+
+  .hero p {
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    max-width: 560px;
+    margin: 0 auto 40px;
+    animation: fadeUp 0.6s ease-out 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    animation: fadeUp 0.6s ease-out 0.3s both;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+    box-shadow: 0 0 30px rgba(34, 214, 122, 0.2);
+  }
+
+  .btn-primary:hover {
+    background: #2ee88a;
+    box-shadow: 0 0 40px rgba(34, 214, 122, 0.35);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* TERMINAL DEMO */
+  .terminal {
+    max-width: 680px;
+    margin: 60px auto 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: fadeUp 0.6s ease-out 0.4s both;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+
+  .terminal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .terminal-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+
+  .terminal-dot.r { background: var(--red); }
+  .terminal-dot.y { background: var(--orange); }
+  .terminal-dot.g { background: var(--accent); }
+
+  .terminal-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+
+  .terminal-body {
+    padding: 20px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.9;
+  }
+
+  .terminal-line {
+    opacity: 0;
+    animation: typeLine 0.3s ease-out forwards;
+  }
+
+  .terminal-line:nth-child(1) { animation-delay: 0.8s; }
+  .terminal-line:nth-child(2) { animation-delay: 1.4s; }
+  .terminal-line:nth-child(3) { animation-delay: 2.0s; }
+  .terminal-line:nth-child(4) { animation-delay: 2.6s; }
+  .terminal-line:nth-child(5) { animation-delay: 3.2s; }
+  .terminal-line:nth-child(6) { animation-delay: 3.8s; }
+  .terminal-line:nth-child(7) { animation-delay: 4.4s; }
+
+  @keyframes typeLine {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .t-prompt { color: var(--accent); }
+  .t-dim { color: var(--text-dim); }
+  .t-accent { color: var(--accent); }
+  .t-orange { color: var(--orange); }
+  .t-blue { color: var(--blue); }
+  .t-purple { color: var(--purple); }
+
+  /* HOW IT WORKS */
+  .section {
+    padding: 80px 0;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 48px;
+  }
+
+  .steps {
+    display: grid;
+    gap: 20px;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 20px;
+    padding: 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.3s;
+  }
+
+  .step:hover { border-color: var(--accent); }
+
+  .step-number {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .step h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .step p {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+
+  /* FEATURES */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  .feature {
+    padding: 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .feature:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  .feature-icon {
+    font-size: 1.6rem;
+    margin-bottom: 14px;
+  }
+
+  .feature h3 {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+  }
+
+  .feature p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  /* QUICK START */
+  .quickstart {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px;
+  }
+
+  .quickstart h2 {
+    font-size: 1.5rem;
+    margin-bottom: 28px;
+  }
+
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.8;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-block .comment {
+    color: var(--text-dim);
+  }
+
+  .code-block .cmd {
+    color: var(--accent);
+  }
+
+  .code-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .code-group + .code-group { margin-top: 24px; }
+
+  /* APPS SUPPORTED */
+  .apps-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 48px 0 0;
+    flex-wrap: wrap;
+  }
+
+  .app-tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text);
+    transition: border-color 0.3s;
+  }
+
+  .app-tag:hover { border-color: var(--accent); }
+
+  .app-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .app-dot.unity { background: var(--accent); }
+  .app-dot.blender { background: var(--orange); }
+  .app-dot.substance { background: var(--purple); }
+
+  /* CONTRIBUTE CTA */
+  .contribute {
+    text-align: center;
+    padding: 80px 0;
+  }
+
+  .contribute h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  .contribute p {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 520px;
+    margin: 0 auto 16px;
+  }
+
+  .contribute-ideas {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 28px 0 36px;
+  }
+
+  .idea-tag {
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.2s;
+  }
+
+  footer a:hover { color: var(--accent); }
+
+  /* DIVIDER */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+  }
+
+  @media (max-width: 600px) {
+    .hero { padding: 60px 0 40px; }
+    .step { grid-template-columns: 1fr; }
+    .step-number { width: 44px; height: 44px; font-size: 1rem; }
+    .quickstart { padding: 24px; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="container">
+  <nav>
+    <a href="#" class="nav-logo">
+      <span class="dot"></span>
+      WorkWatch
+    </a>
+    <div class="nav-links">
+      <a href="#how-it-works">How It Works</a>
+      <a href="#features">Features</a>
+      <a href="#quickstart">Quick Start</a>
+      <a href="https://github.com/rotub/workwatch">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">⚡ Open Source · Python + OBS</div>
+    <h1>Auto-capture your<br><span class="highlight">dev sessions.</span></h1>
+    <p>WorkWatch runs in the background and saves WIP clips while you work. No manual recording. Just clips in a folder, ready for TikTok.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/rotub/workwatch" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        View on GitHub
+      </a>
+      <a href="#quickstart" class="btn btn-secondary">Quick Start →</a>
+    </div>
+
+    <!-- TERMINAL DEMO -->
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="terminal-dot r"></span>
+        <span class="terminal-dot y"></span>
+        <span class="terminal-dot g"></span>
+        <span class="terminal-title">WorkWatch.py</span>
+      </div>
+      <div class="terminal-body">
+        <div class="terminal-line"><span class="t-prompt">$</span> python WorkWatch.py</div>
+        <div class="terminal-line"><span class="t-dim">14:02:05</span>&nbsp; Connected to OBS WebSocket on localhost:4455</div>
+        <div class="terminal-line"><span class="t-dim">14:02:05</span>&nbsp; 🟢 Detected <span class="t-blue">Unity</span> — tracking work session</div>
+        <div class="terminal-line"><span class="t-dim">14:03:05</span>&nbsp; 💾 Clip #1 saved! (14:03:05 in <span class="t-blue">Unity</span>)</div>
+        <div class="terminal-line"><span class="t-dim">14:18:05</span>&nbsp; 💾 Clip #2 saved! (14:18:05 in <span class="t-blue">Unity</span>)</div>
+        <div class="terminal-line"><span class="t-dim">14:20:12</span>&nbsp; 🔄 Switched to <span class="t-orange">Blender</span></div>
+        <div class="terminal-line"><span class="t-dim">14:33:05</span>&nbsp; 💾 Clip #3 saved! (14:33:05 in <span class="t-orange">Blender</span>)</div>
+      </div>
+    </div>
+
+    <!-- SUPPORTED APPS -->
+    <div class="apps-row">
+      <div class="app-tag"><span class="app-dot unity"></span> Unity</div>
+      <div class="app-tag"><span class="app-dot blender"></span> Blender</div>
+      <div class="app-tag"><span class="app-dot substance"></span> Substance Painter</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="section-label">How it works</div>
+    <div class="section-title">Three moving parts, fully automated.</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">01</div>
+        <div>
+          <h3>OBS runs the replay buffer</h3>
+          <p>OBS Studio continuously holds the last 30 seconds of your screen in memory. Lightweight — no disk usage until a clip is saved.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">02</div>
+        <div>
+          <h3>WorkWatch monitors your active window</h3>
+          <p>A small Python script polls your active window every few seconds. When it detects Unity, Blender, or Substance Painter, it starts tracking your work session.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">03</div>
+        <div>
+          <h3>Clips save automatically</h3>
+          <p>After 1 minute of focused work, it tells OBS to save the replay buffer — then again every 15 minutes. You get a toast notification each time. Clips land in a folder ready for TikTok.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-label">Features</div>
+    <div class="section-title">Built for devs who forget to hit record.</div>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">👁️</div>
+        <h3>Smart Detection</h3>
+        <p>Monitors your active window title. Only saves clips when you're actually working in a target app — not when you're browsing Reddit.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⏱️</div>
+        <h3>Focus Check</h3>
+        <p>Waits for 1 minute of continuous focus before saving the first clip. Brief alt-tabs through an app won't trigger a save.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔔</div>
+        <h3>Toast Notifications</h3>
+        <p>Get a Windows notification each time a clip is saved so you always know it's working without checking the terminal.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🚀</div>
+        <h3>Starts on Boot</h3>
+        <p>Configure OBS and WorkWatch to launch on startup. Your entire WIP capture pipeline runs without you lifting a finger.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚙️</div>
+        <h3>Configurable</h3>
+        <p>Change target apps, clip interval, focus time, and OBS connection settings by editing a few lines at the top of the script.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🪶</div>
+        <h3>Lightweight</h3>
+        <p>A single Python script under 300 lines. No framework, no overhead. Runs alongside OBS with negligible resource usage.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- QUICK START -->
+  <section class="section" id="quickstart">
+    <div class="quickstart">
+      <div class="section-label">Quick Start</div>
+      <h2>Up and running in 5 minutes.</h2>
+
+      <div class="code-group">
+        <div class="code-label">1. Install dependencies</div>
+        <div class="code-block">
+          <span class="cmd">pip install obsws-python pywin32 plyer</span>
+        </div>
+      </div>
+
+      <div class="code-group">
+        <div class="code-label">2. Configure OBS Studio</div>
+        <div class="code-block">
+          <span class="comment"># Enable WebSocket Server</span><br>
+          Tools → WebSocket Server Settings → Enable<br><br>
+          <span class="comment"># Enable Replay Buffer (30 seconds)</span><br>
+          Settings → Output → Replay Buffer → Enable<br><br>
+          <span class="comment"># Set recording format and path</span><br>
+          Settings → Output → Recording → MP4, choose a folder<br><br>
+          <span class="comment"># Add a source and start the buffer</span><br>
+          Add Display/Window Capture → Click "Start Replay Buffer"
+        </div>
+      </div>
+
+      <div class="code-group">
+        <div class="code-label">3. Run WorkWatch</div>
+        <div class="code-block">
+          <span class="cmd">python WorkWatch.py</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CONTRIBUTE -->
+  <section class="contribute" id="contribute">
+    <div class="section-label">Open Source</div>
+    <h2>Help make it better.</h2>
+    <p>WorkWatch is open source and contributions are welcome. Here are some ideas to get started:</p>
+    <div class="contribute-ideas">
+      <span class="idea-tag">+ Godot support</span>
+      <span class="idea-tag">+ Aseprite support</span>
+      <span class="idea-tag">+ System tray icon</span>
+      <span class="idea-tag">+ Date-sorted folders</span>
+      <span class="idea-tag">+ macOS / Linux</span>
+      <span class="idea-tag">+ Auto-upload to TikTok</span>
+    </div>
+    <a href="https://github.com/rotub/workwatch" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      Contribute on GitHub
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Built by <a href="https://rotub.games">Rotub Games</a></p>
+    <a href="https://github.com/rotub/workwatch">GitHub</a>
+  </footer>
+</div>
+
+<!-- Smooth scroll -->
+<script>
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+</body>
+</html>
